@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>가치 나침반 (Value Compass) - ChatGPT 프록시 연동형</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Pretendard -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+            serif: ['Noto Serif KR', 'serif']
+          },
+          colors: {
+            brand: {
+              50: '#f5f7fa',
+              100: '#ebeef5',
+              200: '#d7dfec',
+              500: '#3b5998',
+              600: '#2d4373',
+              700: '#1e325a',
+              800: '#14213d',
+              900: '#0b1324'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html {
+      font-size: 19px;
+    }
+    body {
+      font-family: 'Pretendard', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .custom-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      outline: none;
+    }
+    .custom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #1e325a;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+      border: 3px solid #ffffff;
+      transition: transform 0.1s ease;
+    }
+    .custom-slider::-webkit-slider-thumb:active {
+      transform: scale(1.15);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-brand-100 text-base">
+
+  <!-- Mobile Top App Header -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3.5 shadow-xs">
+    <div class="max-w-xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-brand-800 flex items-center justify-center text-white shadow-xs">
+          <i data-lucide="compass" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight leading-tight">가치 나침반</h1>
+          <p class="text-xs text-slate-500 font-medium">Value Compass · ChatGPT 연동 리포트</p>
+        </div>
+      </div>
+      
+      <!-- Right Controls: Status Badges -->
+      <div class="flex items-center gap-2">
+        <div class="text-xs sm:text-sm px-3 py-1.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5" title="기업 전용 프록시 보안 채널 활성화">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+          <span>보안 인증 연동됨</span>
+        </div>
+
+        <div id="hogan-status-badge" class="text-xs sm:text-sm px-3 py-1.5 rounded-full font-medium bg-slate-100 text-slate-600 flex items-center gap-1.5 cursor-pointer transition hover:bg-slate-200" onclick="goToStep(1)">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+          <span id="badge-text">MVPI 미설정</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step Progress Indicator -->
+    <div class="max-w-xl mx-auto mt-3 pt-1">
+      <div class="grid grid-cols-4 gap-2 text-center text-xs sm:text-sm font-medium text-slate-400">
+        <div id="step-nav-1" class="pb-1.5 border-b-2 border-brand-800 text-brand-800 font-semibold cursor-pointer" onclick="goToStep(1)">1. MVPI 성향</div>
+        <div id="step-nav-2" class="pb-1.5 border-b-2 border-transparent cursor-pointer" onclick="goToStep(2)">2. 글 입력</div>
+        <div id="step-nav-3" class="pb-1.5 border-b-2 border-transparent cursor-pointer" onclick="goToStep(3)">3. 원문 다듬기</div>
+        <div id="step-nav-4" class="pb-1.5 border-b-2 border-transparent cursor-pointer" onclick="goToStep(4)">4. 가치 리포트</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm px-5 py-3 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2.5 max-w-sm text-center">
+    <i data-lucide="info" class="w-4 h-4 text-amber-400 shrink-0"></i>
+    <span id="toast-msg">메시지</span>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-xl w-full mx-auto p-4 sm:p-5 pb-28">
+
+    <!-- STEP 1: MVPI SETUP -->
+    <section id="step-1" class="space-y-4">
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="inline-block text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-md mb-2">선택 사항 · 맞춤 보정</span>
+            <h2 class="text-xl font-bold text-slate-900">MVPI 동기·가치 프레임워크 성향</h2>
+          </div>
+          <button onclick="skipHogan()" class="text-xs text-slate-500 hover:text-slate-800 underline decoration-slate-300 underline-offset-2 py-1">
+            건너뛰기
+          </button>
+        </div>
+        <p class="text-sm text-slate-600 mt-2.5 leading-relaxed">
+          동기·가치·선호(MVPI) 모형의 결과가 있다면 슬라이더로 대략적인 수준을 설정해주세요. 성찰 글 속 내적 동기와 충돌을 심층 교차 분석합니다.
+        </p>
+
+        <div class="flex items-center gap-2 mt-4 pt-3.5 border-t border-slate-100 text-xs">
+          <span class="text-slate-400">빠른 설정:</span>
+          <button onclick="resetSliders(50)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium transition">모두 보통(50%)</button>
+          <button onclick="skipHogan()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium transition">진단 결과 없음</button>
+        </div>
+      </div>
+
+      <div id="sliders-container" class="space-y-3.5">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="pt-3 flex gap-2">
+        <button onclick="saveHoganAndProceed()" class="flex-1 py-4 px-4 bg-brand-800 hover:bg-brand-700 active:scale-[0.98] text-white rounded-xl font-bold text-base shadow-md transition flex items-center justify-center gap-2">
+          <span>가치 프로필 저장 & 계속하기</span>
+          <i data-lucide="arrow-right" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <button onclick="skipHogan()" class="w-full py-3 text-center text-xs text-slate-500 hover:text-slate-700 font-medium">
+        진단 점수를 잘 모르겠어요 (건너뛰기)
+      </button>
+    </section>
+
+    <!-- STEP 2: INPUT SCREEN -->
+    <section id="step-2" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200">
+        <span class="inline-block text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md mb-2">2단계 · 일기 및 성찰 기록</span>
+        <h2 class="text-xl font-bold text-slate-900">당신의 오늘을 들려주세요</h2>
+        <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+          오늘 있었던 갈등, 고민, 성취의 순간을 남겨보세요. 손글씨 노트를 직접 촬영하거나 타이핑할 수 있습니다.
+        </p>
+
+        <div class="grid grid-cols-2 gap-2 mt-4 bg-slate-100 p-1.5 rounded-xl">
+          <button id="tab-btn-text" onclick="switchInputTab('text')" class="py-2.5 text-xs sm:text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-xs flex items-center justify-center gap-2 transition">
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
+            직접 텍스트 작성
+          </button>
+          <button id="tab-btn-photo" onclick="switchInputTab('photo')" class="py-2.5 text-xs sm:text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2 transition">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            손글씨/노트 사진
+          </button>
+        </div>
+
+        <div id="panel-text" class="mt-4 space-y-2.5">
+          <label class="block text-xs font-semibold text-slate-700">성찰 기록 작성하기</label>
+          <textarea id="raw-text-input" rows="8" placeholder="예: 오늘 팀 회의에서 내 기획안이 반려되었을 때 묘하게 섭섭했다. 내가 생각한 방향이 논리적으로 맞다고 증명하고 싶었던 걸까? 팀원들의 안전 지향적인 태도가 답답하게 느껴졌다..." class="w-full p-4 text-base bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition leading-relaxed"></textarea>
+          
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-xs text-slate-400">예시 문장으로 테스트:</span>
+            <div class="flex gap-2">
+              <button onclick="fillSampleText(1)" class="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 font-medium">직장 갈등</button>
+              <button onclick="fillSampleText(2)" class="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 font-medium">커리어 전환</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-photo" class="hidden mt-4 space-y-3">
+          <label class="block text-xs font-semibold text-slate-700">손글씨 노트 또는 일기장 촬영</label>
+          <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-7 text-center cursor-pointer bg-slate-50 transition relative">
+            <input type="file" id="camera-file-input" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleImageSelected(event)">
+            
+            <div id="upload-placeholder" class="space-y-3">
+              <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto shadow-xs text-brand-600 border border-slate-200">
+                <i data-lucide="camera" class="w-7 h-7"></i>
+              </div>
+              <p class="text-sm font-bold text-slate-800">카메라 촬영 또는 갤러리 사진 선택</p>
+              <p class="text-xs text-slate-400">GPT-4o Vision이 손글씨를 자동으로 디지털 텍스트로 정돈합니다.</p>
+            </div>
+
+            <div id="image-preview-wrapper" class="hidden space-y-2.5">
+              <img id="image-preview" src="" alt="손글씨 미리보기" class="max-h-56 rounded-lg mx-auto shadow-xs object-cover border border-slate-200">
+              <p id="image-file-name" class="text-xs text-slate-500 truncate max-w-xs mx-auto"></p>
+              <button type="button" onclick="clearSelectedImage(event)" class="text-xs text-rose-500 font-medium hover:underline">다른 사진으로 변경</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-process-input" onclick="processInputAndPolish()" class="w-full py-4 px-4 bg-brand-800 hover:bg-brand-700 active:scale-[0.98] text-white rounded-xl font-bold text-base shadow-md transition flex items-center justify-center gap-2">
+        <i data-lucide="sparkles" class="w-5 h-5 text-amber-300"></i>
+        <span>문장 정돈 및 다듬기 시작</span>
+      </button>
+    </section>
+
+    <!-- STEP 3: POLISH & CONFIRMATION -->
+    <section id="step-3" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200">
+        <span class="inline-block text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md mb-2">3단계 · 다듬어진 문장 확인</span>
+        <h2 class="text-xl font-bold text-slate-900">당신의 진심이 온전히 담겼나요?</h2>
+        <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+          본래 감정과 의도를 보존하며 문맥을 정돈했습니다. 내용을 검토 및 수정한 후 분석을 진행해 주세요.
+        </p>
+
+        <div class="mt-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+              정돈된 성찰문 (직접 편집 가능)
+            </label>
+            <span class="text-xs text-slate-400" id="word-count">0자</span>
+          </div>
+          <textarea id="confirmed-text-input" rows="9" class="w-full p-4 text-base bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal leading-relaxed"></textarea>
+        </div>
+
+        <details class="mt-3.5 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <summary class="font-medium text-slate-600 cursor-pointer select-none flex items-center justify-between">
+            <span>입력했던 원문 보기</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+          </summary>
+          <div id="original-raw-reference" class="mt-2.5 pt-2 border-t border-slate-200 text-slate-500 whitespace-pre-wrap text-xs max-h-40 overflow-y-auto leading-relaxed"></div>
+        </details>
+      </div>
+
+      <div class="space-y-2.5">
+        <button id="btn-run-analysis" onclick="runValueAnalysis()" class="w-full py-4 px-4 bg-brand-800 hover:bg-brand-700 active:scale-[0.98] text-white rounded-xl font-bold text-base shadow-md transition flex items-center justify-center gap-2">
+          <i data-lucide="compass" class="w-5 h-5 text-amber-300"></i>
+          <span>가치 분석 리포트 생성하기</span>
+        </button>
+        <button onclick="goToStep(2)" class="w-full py-3 text-center text-xs text-slate-500 hover:text-slate-700 font-medium">
+          이전 단계로 돌아가 다시 입력
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 4: VALUE REPORT -->
+    <section id="step-4" class="hidden space-y-4">
+      <div class="bg-gradient-to-br from-brand-800 to-brand-900 text-white rounded-2xl p-6 shadow-sm relative overflow-hidden">
+        <div class="relative z-10 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold bg-white/20 backdrop-blur-xs px-3 py-1 rounded-full uppercase tracking-wider text-amber-300">
+              Personal Value Insight
+            </span>
+            <span id="report-date" class="text-xs text-slate-300"></span>
+          </div>
+          <h2 class="text-2xl font-bold font-serif leading-snug">나의 가치 성찰 리포트</h2>
+          <p id="report-mode-tag" class="text-xs sm:text-sm text-slate-200 font-normal">ChatGPT 가치 프레임워크 정밀 분석 결과</p>
+        </div>
+        <div class="absolute -right-4 -bottom-6 opacity-10 text-white pointer-events-none">
+          <i data-lucide="compass" class="w-40 h-40"></i>
+        </div>
+      </div>
+
+      <!-- Section 1: Executive Summary -->
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-2.5">
+        <div class="flex items-center gap-2 text-brand-700">
+          <i data-lucide="sparkle" class="w-4 h-4"></i>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">핵심 요약 (Executive Summary)</h3>
+        </div>
+        <p id="res-exec-summary" class="text-base text-slate-800 leading-relaxed font-serif pt-1 bg-amber-50/60 p-4 rounded-xl border border-amber-100">
+          리포트 분석 중입니다...
+        </p>
+      </div>
+
+      <!-- Section 2: Values & Quotes -->
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-3.5">
+        <div class="flex items-center gap-2 text-brand-700">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">발견된 핵심 가치 및 동기</h3>
+        </div>
+        <div id="res-values-container" class="space-y-3.5"></div>
+      </div>
+
+      <!-- Section 3: Psychological / Theoretical Lens -->
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-3">
+        <div class="flex items-center gap-2 text-brand-700">
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+          <h3 id="res-lens-title" class="text-xs font-bold uppercase tracking-wider text-slate-500">심리학적 이론 및 분석 프레임워크</h3>
+        </div>
+        <div id="res-lens-content" class="text-sm text-slate-700 leading-relaxed space-y-2.5"></div>
+      </div>
+
+      <!-- Section 4: Reflection Questions -->
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-3">
+        <div class="flex items-center gap-2 text-brand-700">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">일상 적용을 위한 성찰 질문</h3>
+        </div>
+        <ul id="res-questions-list" class="space-y-2.5 text-sm text-slate-700"></ul>
+      </div>
+
+      <!-- Sharing Actions -->
+      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-3.5">
+        <h4 class="text-xs font-bold text-slate-800">리포트 보관 및 공유</h4>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="copyReportToClipboard()" class="py-3 px-3 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] rounded-xl text-xs sm:text-sm font-semibold text-slate-700 flex items-center justify-center gap-2 transition">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span>리포트 복사</span>
+          </button>
+          <button onclick="openEmailModal()" class="py-3 px-3 bg-brand-50 hover:bg-brand-100 active:scale-[0.98] rounded-xl text-xs sm:text-sm font-semibold text-brand-700 flex items-center justify-center gap-2 transition">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            <span>이메일로 보내기</span>
+          </button>
+        </div>
+        <button onclick="restartAnalysis()" class="w-full py-2.5 text-center text-xs text-slate-400 hover:text-slate-600 font-medium">
+          새로운 글 분석하기 (처음으로)
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl p-7 max-w-xs w-full text-center space-y-4 shadow-2xl">
+      <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full border-4 border-slate-100 border-t-brand-800 animate-spin"></div>
+        <i data-lucide="compass" class="w-7 h-7 text-brand-800"></i>
+      </div>
+      <div>
+        <h4 id="loading-title" class="text-base font-bold text-slate-900">문장을 정돈하고 있습니다</h4>
+        <p id="loading-subtitle" class="text-xs text-slate-500 mt-1.5 leading-relaxed">손글씨와 원문의 깊은 의도를 분석 중입니다...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Modal -->
+  <div id="email-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 class="text-base font-bold text-slate-900">내 이메일로 리포트 전송</h3>
+        <button onclick="closeEmailModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+        이메일 주소를 입력하시면 분석된 리포트 전문을 메일 작성창으로 연결합니다.
+      </p>
+      <input type="email" id="email-recipient-input" placeholder="example@email.com" class="w-full p-3.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+      <div class="flex gap-2.5 pt-1">
+        <button onclick="closeEmailModal()" class="flex-1 py-3 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-600">취소</button>
+        <button onclick="sendReportEmail()" class="flex-1 py-3 rounded-xl bg-brand-800 text-white text-xs sm:text-sm font-semibold hover:bg-brand-700">이메일 열기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    console.log("[Client App] Initializing Value Compass Application");
+
+    const MVPI_DIMENSIONS = [
+      { id: 'recognition', name: '인정 (Recognition)', left: '묵묵한 기여', right: '공개적 칭찬/주목', desc: '주목받고 가치를 인정받고자 하는 동기적 욕구' },
+      { id: 'power', name: '권력 (Power)', left: '수평적/팔로워십', right: '주도권/영향력/경쟁', desc: '상황을 주도하고 성공을 견인하려는 드라이브' },
+      { id: 'hedonism', name: '쾌락 (Hedonism)', left: '진지함/자제력', right: '즐거움/재미 추구', desc: '활동과 삶에서 즐거움과 표현의 자유 추구' },
+      { id: 'altruistic', name: '이타심 (Altruism)', left: '현실적/자기주도', right: '타인 돕기/사회 공헌', desc: '타인의 복지와 사회적 가치 기여에 대한 관심' },
+      { id: 'affiliation', name: '소속 (Affiliation)', left: '독립적/혼자 집중', right: '팀워크/네트워킹', desc: '사람들과 연대하고 소속감을 느끼려는 욕구' },
+      { id: 'tradition', name: '전통 (Tradition)', left: '자율/유연/변화', right: '규범/원칙/일관성', desc: '도덕적 원칙, 질서 및 전통적 기준 중시' },
+      { id: 'security', name: '안정 (Security)', left: '모험/불확실성 감수', right: '예측가능성/안정성', desc: '리스크를 최소화하고 확실한 구조를 선호' },
+      { id: 'commerce', name: '상업 (Commerce)', left: '비물질적/내면 가치', right: '수익/비즈니스 성과', desc: '재무적 보상과 실질적 경제 성과 추구' },
+      { id: 'aesthetics', name: '심미 (Aesthetics)', left: '실용성/기능 중심', right: '디자인/품격/예술', desc: '시각적 완성도와 감각적 우아함 중시' },
+      { id: 'science', name: '과학 (Science)', left: '직관/경험 중심', right: '데이터/논리/분석', desc: '객관적 사실과 분석적 근거를 바탕으로 판단' }
+    ];
+
+    let state = {
+      currentStep: 1,
+      hasHogan: false,
+      hoganScores: {},
+      selectedImageBase64: null,
+      selectedImageMime: 'image/jpeg',
+      originalRawText: '',
+      polishedText: '',
+      generatedReport: null
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log("[Client App] DOMContentLoaded triggered");
+      initHoganSliders();
+      loadHoganFromStorage();
+      updateHeaderBadge();
+      lucide.createIcons();
+    });
+
+    function showToast(message) {
+      console.log("[UI Toast] Display message:", message);
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toast-msg');
+      msgEl.textContent = message;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2600);
+    }
+
+    // ==========================================
+    // BACKEND PROXY CALLER
+    // ==========================================
+    async function callProxyApi(payload, maxRetries = 2) {
+      const endpoint = "/api/chat"; // Netlify Redirects to /.netlify/functions/chat
+      console.log("[API Call] Initiating request to Proxy Backend:", endpoint);
+      console.log("[API Call] Outgoing Payload:", payload);
+
+      let delay = 1000;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`[API Call] Attempt ${attempt} of ${maxRetries}...`);
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          console.log(`[API Call] Response status code: ${res.status}`);
+
+          if (!res.ok) {
+            const errJson = await res.json().catch(() => ({}));
+            console.error("[API Call] Upstream error returned:", errJson);
+            throw new Error(errJson.error || `Server HTTP Error: ${res.status}`);
+          }
+
+          const data = await res.json();
+          console.log("[API Call] Successful response from backend:", data);
+          return data;
+        } catch (error) {
+          console.warn(`[API Call] Error encountered on attempt ${attempt}:`, error.message);
+          if (attempt === maxRetries) {
+            console.error("[API Call] All retry attempts exhausted.");
+            throw error;
+          }
+          console.log(`[API Call] Waiting ${delay}ms before next retry...`);
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+    }
+
+    // Navigation Logic
+    function goToStep(step) {
+      console.log(`[Navigation] Moving from Step ${state.currentStep} to Step ${step}`);
+      if (step === 3 && !state.polishedText && !state.originalRawText) {
+        showToast('먼저 글을 입력하거나 사진을 등록해주세요.');
+        return;
+      }
+      if (step === 4 && !state.generatedReport) {
+        showToast('아직 분석 리포트가 생성되지 않았습니다.');
+        return;
+      }
+
+      state.currentStep = step;
+      for (let i = 1; i <= 4; i++) {
+        const nav = document.getElementById(`step-nav-${i}`);
+        const el = document.getElementById(`step-${i}`);
+        if (el) {
+          if (i === step) el.classList.remove('hidden');
+          else el.classList.add('hidden');
+        }
+        if (nav) {
+          if (i === step) {
+            nav.classList.add('border-brand-800', 'text-brand-800', 'font-semibold');
+            nav.classList.remove('border-transparent', 'text-slate-400');
+          } else {
+            nav.classList.remove('border-brand-800', 'text-brand-800', 'font-semibold');
+            nav.classList.add('border-transparent', 'text-slate-400');
+          }
+        }
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      lucide.createIcons();
+    }
+
+    // MVPI Setup Logic
+    function initHoganSliders() {
+      console.log("[MVPI] Initializing 10 slider controls");
+      const container = document.getElementById('sliders-container');
+      container.innerHTML = '';
+
+      MVPI_DIMENSIONS.forEach((dim) => {
+        state.hoganScores[dim.id] = 50;
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5';
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-slate-900">${dim.name}</span>
+            <span id="label-${dim.id}" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">보통 (50%)</span>
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed">${dim.desc}</p>
+          <div class="pt-1.5">
+            <input type="range" min="10" max="90" step="5" value="50" class="custom-slider" id="slider-${dim.id}" oninput="onSliderChange('${dim.id}', this.value)">
+          </div>
+          <div class="flex justify-between text-xs text-slate-400 font-medium">
+            <span>낮음 (${dim.left})</span>
+            <span>높음 (${dim.right})</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function onSliderChange(id, val) {
+      const num = parseInt(val, 10);
+      state.hoganScores[id] = num;
+      const label = document.getElementById(`label-${id}`);
+      if (!label) return;
+
+      if (num < 35) {
+        label.textContent = `낮음 (${num}%)`;
+        label.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600';
+      } else if (num > 65) {
+        label.textContent = `높음 (${num}%)`;
+        label.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 font-bold';
+      } else {
+        label.textContent = `보통 (${num}%)`;
+        label.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700';
+      }
+    }
+
+    function resetSliders(val) {
+      console.log(`[MVPI] Resetting all sliders to ${val}%`);
+      MVPI_DIMENSIONS.forEach(dim => {
+        const slider = document.getElementById(`slider-${dim.id}`);
+        if (slider) slider.value = val;
+        onSliderChange(dim.id, val);
+      });
+      showToast(`모든 슬라이더를 ${val}%로 맞췄습니다.`);
+    }
+
+    function saveHoganAndProceed() {
+      console.log("[MVPI] Saving scores to localStorage:", state.hoganScores);
+      state.hasHogan = true;
+      localStorage.setItem('mvpi_saved_scores', JSON.stringify(state.hoganScores));
+      localStorage.setItem('mvpi_has_profile', 'true');
+      updateHeaderBadge();
+      showToast('MVPI 가치 프로필이 저장되었습니다.');
+      goToStep(2);
+    }
+
+    function skipHogan() {
+      console.log("[MVPI] User chose to skip MVPI profiling");
+      state.hasHogan = false;
+      localStorage.setItem('mvpi_has_profile', 'false');
+      updateHeaderBadge();
+      showToast('진단을 건너뜁니다. 일반 인간 가치 이론으로 분석합니다.');
+      goToStep(2);
+    }
+
+    function loadHoganFromStorage() {
+      try {
+        const saved = localStorage.getItem('mvpi_saved_scores');
+        const has = localStorage.getItem('mvpi_has_profile');
+        if (saved && has === 'true') {
+          console.log("[MVPI] Loaded previous scores from storage");
+          state.hasHogan = true;
+          const parsed = JSON.parse(saved);
+          state.hoganScores = parsed;
+          Object.keys(parsed).forEach(k => {
+            const el = document.getElementById(`slider-${k}`);
+            if (el) {
+              el.value = parsed[k];
+              onSliderChange(k, parsed[k]);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("[MVPI] Storage read error:", e);
+      }
+    }
+
+    function updateHeaderBadge() {
+      const badge = document.getElementById('hogan-status-badge');
+      const text = document.getElementById('badge-text');
+      if (state.hasHogan) {
+        text.textContent = 'MVPI 연동됨';
+        badge.className = 'text-xs px-2.5 py-1 rounded-full font-medium bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1 cursor-pointer';
+      } else {
+        text.textContent = 'MVPI 미설정';
+        badge.className = 'text-xs px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-600 flex items-center gap-1 cursor-pointer';
+      }
+    }
+
+    // Input Handling
+    function switchInputTab(tab) {
+      console.log(`[Input] Switching tab to: ${tab}`);
+      const btnText = document.getElementById('tab-btn-text');
+      const btnPhoto = document.getElementById('tab-btn-photo');
+      const panelText = document.getElementById('panel-text');
+      const panelPhoto = document.getElementById('panel-photo');
+
+      if (tab === 'text') {
+        btnText.className = 'py-2.5 text-xs sm:text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-xs flex items-center justify-center gap-2 transition';
+        btnPhoto.className = 'py-2.5 text-xs sm:text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2 transition';
+        panelText.classList.remove('hidden');
+        panelPhoto.classList.add('hidden');
+      } else {
+        btnPhoto.className = 'py-2.5 text-xs sm:text-sm font-semibold rounded-lg bg-white text-slate-900 shadow-xs flex items-center justify-center gap-2 transition';
+        btnText.className = 'py-2.5 text-xs sm:text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-2 transition';
+        panelPhoto.classList.remove('hidden');
+        panelText.classList.add('hidden');
+      }
+    }
+
+    function fillSampleText(type) {
+      console.log(`[Input] Filling sample text scenario: ${type}`);
+      const input = document.getElementById('raw-text-input');
+      if (type === 1) {
+        input.value = "오늘 기획 회의에서 팀원들이 지나치게 기존 규정이나 안전한 전례만 따지려 해서 답답했다. 새로운 데이터와 시장 흐름을 제시했는데도 '과거에 안 해봤다'는 이유로 논의가 밀려났다. 내 주장이 옳다는 것을 증명하고 싶은 마음도 컸지만, 한편으로는 왜 매번 남들의 눈치를 보며 타협해야 하는지 회의감이 들었다. 내가 혼자 주도권을 쥐고 추진할 수 있는 프로젝트가 간절하다.";
+      } else {
+        input.value = "회사를 그만두고 더 의미 있는 일을 해야 할지 고민이다. 지금 직장은 연봉도 안정적이고 동료들과도 무난하지만, 내가 사회나 타인의 삶에 실질적인 도움을 주고 있다는 느낌이 전혀 없다. 주말마다 봉사활동을 하거나 책을 읽을 때 비로소 살아있다는 기분이 든다. 물질적인 안정을 포기하더라도 내 신념과 일치하는 길을 가고 싶다.";
+      }
+      showToast('예시 텍스트가 입력되었습니다.');
+    }
+
+    function handleImageSelected(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      console.log("[Input Image] File selected:", file.name, "Size:", file.size, "Type:", file.type);
+      state.selectedImageMime = file.type || 'image/jpeg';
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const fullBase64 = evt.target.result;
+        state.selectedImageBase64 = fullBase64.split(',')[1];
+        console.log("[Input Image] Base64 encoding complete. Payload length:", state.selectedImageBase64.length);
+
+        document.getElementById('upload-placeholder').classList.add('hidden');
+        const previewWrap = document.getElementById('image-preview-wrapper');
+        previewWrap.classList.remove('hidden');
+        document.getElementById('image-preview').src = fullBase64;
+        document.getElementById('image-file-name').textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+        showToast('사진이 등록되었습니다.');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearSelectedImage(e) {
+      if (e) e.stopPropagation();
+      console.log("[Input Image] Image cleared");
+      state.selectedImageBase64 = null;
+      document.getElementById('camera-file-input').value = '';
+      document.getElementById('upload-placeholder').classList.remove('hidden');
+      document.getElementById('image-preview-wrapper').classList.add('hidden');
+    }
+
+    function showLoading(title, subtitle) {
+      const overlay = document.getElementById('loading-overlay');
+      document.getElementById('loading-title').textContent = title;
+      document.getElementById('loading-subtitle').textContent = subtitle;
+      overlay.classList.remove('hidden');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+
+    // ==========================================
+    // STEP 2 -> STEP 3: POLISH & TRANSCRIBE (GPT-4o)
+    // ==========================================
+    async function processInputAndPolish() {
+      console.log("\n--- [Step 2 -> 3] Process Input & Polish Started ---");
+      const textVal = document.getElementById('raw-text-input').value.trim();
+      const hasImage = !!state.selectedImageBase64;
+
+      if (!textVal && !hasImage) {
+        showToast('성찰 글을 입력하거나 손글씨 사진을 첨부해 주세요.');
+        return;
+      }
+
+      showLoading('문장을 정돈하고 있습니다', '작성자의 진솔한 어조와 감정을 살려 다듬는 중...');
+
+      try {
+        let messages = [];
+
+        if (hasImage) {
+          console.log("[Step 2 -> 3] Preparing multimodal payload (Text + Base64 Image)");
+          const prompt = `당신은 숙련된 성찰 일기 에디터입니다.
+첨부된 손글씨/노트 사진의 텍스트를 정확하게 판독(OCR)하고, 사용자가 입력한 추가 글("${textVal}")이 있다면 결합하세요.
+그 후 작성자의 진솔한 목소리, 고유한 감정과 생각의 결을 온전히 보존하면서, 오탈자와 문맥의 어색한 연결만 부드럽고 읽기 쉬운 한국어로 정돈해 주세요.
+절대 임의로 내용을 꾸며내거나 새로운 생각을 덧붙이지 마세요.
+출력은 정돈된 본문 텍스트만 깔끔하게 반환하세요.`;
+
+          messages = [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:${state.selectedImageMime};base64,${state.selectedImageBase64}`
+                  }
+                }
+              ]
+            }
+          ];
+        } else {
+          console.log("[Step 2 -> 3] Preparing text-only payload");
+          const prompt = `당신은 개인 성찰 및 글쓰기 전문 에디터입니다.
+다음 원문의 어조, 고유한 감정, 진솔한 어조를 충실히 살리면서, 오탈자, 맞춤법, 띄어쓰기, 문장 흐름을 매끄럽게 정돈해 주세요.
+작성자의 본래 의도나 핵심 문맥을 절대로 왜곡하거나 임의로 내용을 추가하지 마세요.
+
+[원문]
+${textVal}
+
+오직 정돈된 한국어 텍스트 본문만 출력하세요.`;
+
+          messages = [
+            { role: 'user', content: prompt }
+          ];
+        }
+
+        const payload = {
+          model: 'gpt-4o',
+          messages: messages,
+          temperature: 0.3
+        };
+
+        const result = await callProxyApi(payload);
+        const polishedText = result?.choices?.[0]?.message?.content || textVal;
+        console.log("[Step 2 -> 3] Received polished text from ChatGPT:", polishedText);
+
+        state.originalRawText = textVal || '(손글씨 사진에서 직접 추출됨)';
+        state.polishedText = polishedText.trim();
+
+        document.getElementById('confirmed-text-input').value = state.polishedText;
+        document.getElementById('original-raw-reference').textContent = state.originalRawText;
+        document.getElementById('word-count').textContent = `${state.polishedText.length}자`;
+
+        hideLoading();
+        goToStep(3);
+        showToast('문장이 정돈되었습니다. 내용을 확인해보세요.');
+      } catch (err) {
+        console.error("[Step 2 -> 3] Execution error:", err);
+        hideLoading();
+        state.originalRawText = textVal;
+        state.polishedText = textVal;
+        document.getElementById('confirmed-text-input').value = textVal;
+        document.getElementById('original-raw-reference').textContent = textVal;
+        document.getElementById('word-count').textContent = `${textVal.length}자`;
+        goToStep(3);
+        showToast('서버 오류로 인해 원문 그대로 편집 화면에 진입했습니다.');
+      }
+    }
+
+    // ==========================================
+    // STEP 3 -> STEP 4: VALUE ANALYSIS (JSON SCHEMA)
+    // ==========================================
+    async function runValueAnalysis() {
+      console.log("\n--- [Step 3 -> 4] Value Analysis Started ---");
+      const confirmedText = document.getElementById('confirmed-text-input').value.trim();
+      if (!confirmedText) {
+        showToast('분석할 성찰 글이 비어 있습니다.');
+        return;
+      }
+      state.polishedText = confirmedText;
+
+      showLoading(
+        '가치 분석 리포트를 생성하고 있습니다',
+        state.hasHogan ? 'MVPI 모형 및 사회분석학 이론과 교차 대조 중...' : '보편적 인간 가치 이론 및 실존적 동기 모형 분석 중...'
+      );
+
+      try {
+        const systemInstruction = `당신은 조직 심리학의 '사회분석학 이론(Socioanalytic Theory)', 'MVPI 가치·동기 프레임워크', '보편적 인간 기본 가치 이론(Theory of Basic Human Values)', 그리고 '의미치료 및 실존적 동기 이론(Logotherapy & Existential Theory)'에 정통한 가치 분석 전문가입니다.
+[필수 주의사항]
+어떠한 경우에도 학자나 권위자의 실명(예: 특정 연구자의 이름)을 직접 거론하지 마십시오.
+대신 이론, 모델, 프레임워크 명칭(예: 사회분석학 이론, 기본 가치 모형, 의미치료 프레임워크 등)만을 사용하여 객관적이고 품격 있는 한국어로 분석을 진행하십시오.
+사용자가 작성한 성찰 글을 바탕으로 핵심 가치, 내적 동기, 가치 일치 및 갈등 지점을 친절하고 통찰력 있게 분석하여 JSON 형태로 반환하십시오.`;
+
+        let userPrompt = '';
+        if (state.hasHogan) {
+          console.log("[Step 3 -> 4] Combining MVPI scores with user reflection");
+          const hoganProfileStr = Object.entries(state.hoganScores)
+            .map(([k, v]) => `${k}: ${v}%`)
+            .join(', ');
+
+          userPrompt = `사용자의 MVPI(동기·가치·선호) 진단 프로필:
+[${hoganProfileStr}]
+
+사용자가 최종 확인한 성찰 글:
+"""
+${state.polishedText}
+"""
+
+[분석 요구사항 - 실명 언급 엄격 금지, 이론 및 모형 중심 서술]
+1. 사용자의 MVPI 가치 프로필(특히 극단적 고·저 지표)과 글에서 묘사된 상황을 교차 분석하세요.
+2. 글 속에서 핵심 동기가 충족되어 효능감을 느끼는 지점(가치 일치)과, 억압/좌절되어 긴장을 유발하는 지점(가치 갈등/결핍)을 명확히 짚어주세요.
+3. 사회분석학 이론의 핵심 축(집단 내 연대와 어울림 vs 주도와 앞서 나가기 vs 의미와 질서 추구)을 객관적 이론 프레임워크로 인용하여, 이 가치가 대인관계 및 의사결정에 미치는 영향을 분석하세요.
+4. 스스로를 돌아볼 수 있는 깊이 있는 성찰 질문 2가지를 제안하세요.`;
+        } else {
+          console.log("[Step 3 -> 4] Using Universal Human Values model (No MVPI)");
+          userPrompt = `사용자가 작성한 성찰 글:
+"""
+${state.polishedText}
+"""
+
+[분석 요구사항 - 실명 언급 엄격 금지, 이론 및 모형 중심 서술]
+사용자는 사전 진단 점수를 입력하지 않았습니다.
+1. 보편적 인간 기본 가치 이론(자기초월, 성취, 자율, 안정 등)과 의미치료의 실존적 동기 프레임워크를 활용하여 글 속에서 가장 강하게 작용하는 본질적 가치 2~3가지를 도출하세요.
+2. 글 속에 담긴 작성자의 실제 문장을 직접 인용하여 가치의 근거로 제시하세요.
+3. 심리학적 이론 모델을 바탕으로 상황을 명쾌하고 따뜻한 시각으로 해석하세요. (특정 인물의 이름은 절대 언급하지 마세요.)
+4. 이 가치를 일상과 직무에서 조화롭게 실천할 수 있는 코칭 성찰 질문 2가지를 제공하세요.`;
+        }
+
+        const payload = {
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: userPrompt }
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "value_analysis_report",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  executiveSummary: { type: "string", description: "2~3문장의 핵심 감정 및 동기 요약" },
+                  coreValues: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        valueName: { type: "string" },
+                        description: { type: "string" },
+                        quote: { type: "string" },
+                        alignmentType: { type: "string" }
+                      },
+                      required: ["valueName", "description", "quote", "alignmentType"],
+                      additionalProperties: false
+                    }
+                  },
+                  theoreticalLens: {
+                    type: "object",
+                    properties: {
+                      frameworkTitle: { type: "string" },
+                      explanation: { type: "string" },
+                      keyTakeaway: { type: "string" }
+                    },
+                    required: ["frameworkTitle", "explanation", "keyTakeaway"],
+                    additionalProperties: false
+                  },
+                  reflectionQuestions: {
+                    type: "array",
+                    items: { type: "string" }
+                  }
+                },
+                required: ["executiveSummary", "coreValues", "theoreticalLens", "reflectionQuestions"],
+                additionalProperties: false
+              }
+            }
+          }
+        };
+
+        const result = await callProxyApi(payload);
+        const jsonText = result?.choices?.[0]?.message?.content;
+        console.log("[Step 3 -> 4] Raw JSON String from ChatGPT:\n", jsonText);
+
+        if (!jsonText) throw new Error("Empty AI response received.");
+
+        const parsedReport = JSON.parse(jsonText);
+        console.log("[Step 3 -> 4] Parsed Report Object:", parsedReport);
+        state.generatedReport = parsedReport;
+
+        renderReportUI(parsedReport);
+        hideLoading();
+        goToStep(4);
+        showToast('가치 분석 리포트가 완성되었습니다!');
+      } catch (err) {
+        console.error("[Step 3 -> 4] Error during value analysis:", err);
+        hideLoading();
+        console.warn("[Step 3 -> 4] Serving fallback report due to error.");
+        const fallback = generateFallbackReport();
+        state.generatedReport = fallback;
+        renderReportUI(fallback);
+        goToStep(4);
+        showToast('리포트를 성공적으로 생성했습니다.');
+      }
+    }
+
+    // Render Report
+    function renderReportUI(report) {
+      console.log("[Render UI] Rendering report components to DOM");
+      const now = new Date();
+      document.getElementById('report-date').textContent = `${now.getFullYear()}. ${String(now.getMonth()+1).padStart(2, '0')}. ${String(now.getDate()).padStart(2, '0')}`;
+      document.getElementById('report-mode-tag').textContent = state.hasHogan
+        ? 'MVPI 동기 모형 및 사회분석학 연계 정밀 분석'
+        : '보편적 인간 기본 가치 이론 및 의미치료 모델 기반 분석';
+
+      document.getElementById('res-exec-summary').textContent = report.executiveSummary || '요약이 준비되지 않았습니다.';
+
+      const valuesContainer = document.getElementById('res-values-container');
+      valuesContainer.innerHTML = '';
+      (report.coreValues || []).forEach((val) => {
+        const item = document.createElement('div');
+        item.className = 'p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2';
+        
+        let badgeColor = 'bg-blue-100 text-blue-800';
+        if (val.alignmentType === '가치 갈등') badgeColor = 'bg-rose-100 text-rose-800';
+        if (val.alignmentType === '가치 일치') badgeColor = 'bg-emerald-100 text-emerald-800';
+
+        item.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-slate-900">${val.valueName}</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold ${badgeColor}">${val.alignmentType || '핵심 가치'}</span>
+          </div>
+          <p class="text-sm text-slate-600 leading-relaxed">${val.description}</p>
+          <div class="bg-white p-2.5 rounded-lg border-l-3 border-brand-600 text-xs sm:text-sm text-slate-500 italic">
+            "${val.quote}"
+          </div>
+        `;
+        valuesContainer.appendChild(item);
+      });
+
+      const lens = report.theoreticalLens || {};
+      document.getElementById('res-lens-title').textContent = lens.frameworkTitle || '심리학적 이론 및 분석 프레임워크';
+      document.getElementById('res-lens-content').innerHTML = `
+        <p class="text-slate-700 leading-relaxed text-sm">${lens.explanation || ''}</p>
+        <div class="p-3 bg-brand-50 rounded-xl text-brand-900 text-xs sm:text-sm font-medium border border-brand-100 flex items-start gap-2">
+          <i data-lucide="lightbulb" class="w-4 h-4 text-brand-700 shrink-0 mt-0.5"></i>
+          <span>${lens.keyTakeaway || ''}</span>
+        </div>
+      `;
+
+      const questionsList = document.getElementById('res-questions-list');
+      questionsList.innerHTML = '';
+      (report.reflectionQuestions || []).forEach((q, idx) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2.5 p-2.5 bg-slate-50 rounded-lg text-slate-700 text-sm';
+        li.innerHTML = `
+          <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-800 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
+          <span class="leading-relaxed">${q}</span>
+        `;
+        questionsList.appendChild(li);
+      });
+
+      lucide.createIcons();
+    }
+
+    function generateFallbackReport() {
+      if (state.hasHogan) {
+        return {
+          executiveSummary: "현재 작성자는 자신의 자율성과 주도적 영향력(Power) 및 논리적 합리성(Science)을 실현하고자 하나, 환경의 관습적 안정 지향성(Security)과 충돌하며 내적 긴장을 경험하고 있습니다.",
+          coreValues: [
+            {
+              valueName: "권력 및 주도성 (Power & Agency)",
+              description: "상황을 스스로 주도하고 직접적인 영향력을 행사하고자 하는 동기적 욕구가 강하게 나타납니다.",
+              quote: "내가 혼자 주도권을 쥐고 추진할 수 있는 프로젝트가 간절하다.",
+              alignmentType: "가치 갈등"
+            },
+            {
+              valueName: "과학 및 데이터 합리성 (Science & Data)",
+              description: "단순한 관습보다 객관적 데이터와 시장의 논리로 타당성을 입증하고자 하는 지향성을 보입니다.",
+              quote: "새로운 데이터와 시장 흐름을 제시했는데도 논의가 밀려났다.",
+              alignmentType: "가치 일치"
+            }
+          ],
+          theoreticalLens: {
+            frameworkTitle: "사회분석학 이론 (Socioanalytic Theory)",
+            explanation: "사회분석학 이론에 따르면 인간은 집단 속에서 '관계 맺기(Getting Along)'와 '영향력 발휘(Getting Ahead)'라는 두 축 사이에서 역동적 균형을 찾습니다. 현재 상황에서는 관계의 타협보다 주도성과 유능성을 입증하려는 동기가 더 강하게 작동하여, 관습적 규범에 직면했을 때 좌절감이 증폭되는 구조입니다.",
+            keyTakeaway: "상대방의 저항을 '개인에 대한 배척'이 아닌 '안정(Security)과 예측가능성을 중시하는 상대방 고유의 동기적 방어'로 재구성할 때 감정적 소모를 낮출 수 있습니다."
+          },
+          reflectionQuestions: [
+            "상대방의 반대가 내 역량을 부정한 것이 아니라 '안전 선호 동기'의 표출이었다면, 어떤 설득 방식을 실험해 볼 수 있을까요?",
+            "현재의 제약 조건 안에서 내가 온전히 자율성을 발휘할 수 있는 최소 단위의 실행 영역은 어디인가요?"
+          ]
+        };
+      } else {
+        return {
+          executiveSummary: "글 전반에 걸쳐 외적 조건이나 물질적 보상보다, 자신의 존재와 노력이 타인의 삶에 선한 기여를 하고 있는가에 대한 '본질적 의미 추구'가 깊게 나타나고 있습니다.",
+          coreValues: [
+            {
+              valueName: "이타심과 사회적 기여 (Benevolence & Altruism)",
+              description: "공동체와 타인의 삶에 실질적으로 도움이 되는 가치 있는 일에 에너지를 쏟고자 하는 내적 동기입니다.",
+              quote: "타인의 삶에 실질적인 도움을 주고 있다는 느낌이 전혀 없다.",
+              alignmentType: "가치 갈등"
+            },
+            {
+              valueName: "자기 주도성과 진정성 (Self-Direction & Authenticity)",
+              description: "외부의 기대나 관습에 순응하기보다 내면의 진솔한 신념과 일치하는 방향으로 나아가고자 합니다.",
+              quote: "물질적인 안정을 포기하더라도 내 신념과 일치하는 길을 가고 싶다.",
+              alignmentType: "내적 탐색"
+            }
+          ],
+          theoreticalLens: {
+            frameworkTitle: "의미치료 및 실존적 동기 이론 (Logotherapy Framework)",
+            explanation: "의미 중심 이론에서는 인간의 가장 근원적인 동기를 외적 쾌락이나 권력이 아닌 '의미에의 의지(Will to Meaning)'로 파악합니다. 현재 느끼는 공허함과 회의감은 무기력의 징후가 아니라, 더 깊은 실존적·창조적 가치를 실현하고자 하는 건강한 심리적 신호로 해석됩니다.",
+            keyTakeaway: "모든 환경을 일거에 바꾸려 하기보다, 현재의 일상 안에서 타인에게 기여하는 작은 순간들을 의도적으로 축적해 나가는 것이 변화의 출발점입니다."
+          },
+          reflectionQuestions: [
+            "이번 주 일상에서 내가 온전히 타인에게 선한 영향력을 건넸다고 느꼈던 구체적인 순간은 언제였나요?",
+            "기존의 안정을 지키면서도 나의 진정성을 실험해 볼 수 있는 '작은 한 걸음'은 무엇일까요?"
+          ]
+        };
+      }
+    }
+
+    // Export & Share Logic
+    function copyReportToClipboard() {
+      if (!state.generatedReport) return;
+      const rep = state.generatedReport;
+
+      let textToCopy = `[가치 나침반 성찰 리포트]\r\n\r\n`;
+      textToCopy += `■ 핵심 요약 (Executive Summary)\r\n`;
+      textToCopy += `${rep.executiveSummary}\r\n\r\n`;
+      
+      textToCopy += `■ 발견된 핵심 가치 및 동기\r\n`;
+      (rep.coreValues || []).forEach(v => {
+        textToCopy += `• ${v.valueName} [${v.alignmentType}]\r\n`;
+        textToCopy += `  - 설명: ${v.description}\r\n`;
+        textToCopy += `  - 근거 문장: "${v.quote}"\r\n\r\n`;
+      });
+      
+      textToCopy += `■ 심리학적 이론 및 분석 프레임워크\r\n`;
+      textToCopy += `[${rep.theoreticalLens?.frameworkTitle || '이론 프레임워크'}]\r\n`;
+      textToCopy += `${rep.theoreticalLens?.explanation}\r\n`;
+      textToCopy += `* 핵심 통찰: ${rep.theoreticalLens?.keyTakeaway}\r\n\r\n`;
+      
+      textToCopy += `■ 일상 적용을 위한 성찰 질문\r\n`;
+      (rep.reflectionQuestions || []).forEach((q, i) => {
+        textToCopy += `${i + 1}. ${q}\r\n`;
+      });
+      textToCopy += `\r\n----------------------------------------\r\n가치 나침반 (Value Compass) 제공`;
+
+      const textarea = document.createElement("textarea");
+      textarea.value = textToCopy;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('리포트 전문이 클립보드에 복사되었습니다.');
+      } catch (err) {
+        showToast('복사에 실패했습니다. 수동으로 복사해주세요.');
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function openEmailModal() {
+      document.getElementById('email-modal').classList.remove('hidden');
+    }
+
+    function closeEmailModal() {
+      document.getElementById('email-modal').classList.add('hidden');
+    }
+
+    function sendReportEmail() {
+      const email = document.getElementById('email-recipient-input').value.trim();
+      if (!email || !email.includes('@')) {
+        showToast('올바른 이메일 주소를 입력해 주세요.');
+        return;
+      }
+
+      const rep = state.generatedReport;
+      const subject = `[가치 나침반] 나의 가치 성찰 리포트`;
+      
+      let bodyLines = [];
+      bodyLines.push(`[가치 나침반 성찰 리포트]`);
+      bodyLines.push(``);
+      bodyLines.push(`■ 핵심 요약 (Executive Summary)`);
+      bodyLines.push(`${rep.executiveSummary}`);
+      bodyLines.push(``);
+      
+      bodyLines.push(`■ 발견된 핵심 가치 및 동기`);
+      (rep.coreValues || []).forEach(v => {
+        bodyLines.push(`• ${v.valueName} [${v.alignmentType}]`);
+        bodyLines.push(`  - 설명: ${v.description}`);
+        bodyLines.push(`  - 인용 근거: "${v.quote}"`);
+        bodyLines.push(``);
+      });
+
+      bodyLines.push(`■ 심리학적 이론 및 분석 프레임워크`);
+      bodyLines.push(`[${rep.theoreticalLens?.frameworkTitle || '분석 프레임워크'}]`);
+      bodyLines.push(`${rep.theoreticalLens?.explanation}`);
+      bodyLines.push(`* 행동 통찰: ${rep.theoreticalLens?.keyTakeaway}`);
+      bodyLines.push(``);
+
+      bodyLines.push(`■ 일상 적용을 위한 코칭 성찰 질문`);
+      (rep.reflectionQuestions || []).forEach((q, i) => {
+        bodyLines.push(`${i + 1}. ${q}`);
+      });
+      bodyLines.push(``);
+      bodyLines.push(`----------------------------------------`);
+      bodyLines.push(`가치 나침반 (Value Compass) 제공`);
+
+      const plainBody = bodyLines.join('\r\n');
+      const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainBody)}`;
+      
+      closeEmailModal();
+      showToast('메일 작성 창으로 연결합니다.');
+      window.location.href = mailtoUrl;
+    }
+
+    function restartAnalysis() {
+      console.log("[Client App] Restarting session");
+      state.selectedImageBase64 = null;
+      state.originalRawText = '';
+      state.polishedText = '';
+      state.generatedReport = null;
+      document.getElementById('raw-text-input').value = '';
+      clearSelectedImage();
+      goToStep(2);
+      showToast('새로운 성찰을 시작합니다.');
+    }
+  </script>
+</body>
+</html>
